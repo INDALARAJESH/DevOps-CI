@@ -5,9 +5,9 @@ pipeline {
         NAME = "spring-app"
         VERSION = "${env.BUILD_ID}"
         GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-        IMAGE_REPO = "praveensirvi"
+        IMAGE_REPO = "indalarajesh"
         GIT_REPO_NAME = "DevOps_MasterPiece-CD-with-argocd"
-        GIT_USER_NAME = "praveensirvi1212"
+        GIT_USER_NAME = "indalarajesh"
        
     }
 
@@ -17,33 +17,13 @@ pipeline {
     stages {
         stage('Checkout git') {
             steps {
-              git branch: 'main', url:'https://github.com/praveensirvi1212/DevOps_MasterPiece-CI-with-Jenkins.git'
+              git branch: 'main', url:'https://github.com/INDALARAJESH/DevOps-CI.git'
             }
         }
         
         stage ('Build & JUnit Test') {
             steps {
                 sh 'mvn clean install' 
-            }
-        }
-
-        stage('SonarQube Analysis'){
-            steps{
-                withSonarQubeEnv('SonarQube-server') {
-                        sh '''mvn clean verify sonar:sonar \
-                        -Dsonar.projectKey=gitops-with-argocd \
-                        -Dsonar.projectName='gitops-with-argocd' \
-                        -Dsonar.host.url=$sonarurl \
-                        -Dsonar.login=$sonarlogin'''
-                }
-            }
-        }
-
-        stage("Quality Gate") {
-            steps {
-              timeout(time: 1, unit: 'HOURS') {
-                waitForQualityGate abortPipeline: true
-              }
             }
         }
         
@@ -80,21 +60,11 @@ pipeline {
       	         sh 'docker build -t ${IMAGE_REPO}/${NAME}:${VERSION}-${GIT_COMMIT} .'
                 
             }
-        }
-
-        stage('Docker Image Scan') {
-            steps {
-      	        sh ' trivy image --format template --template "@/usr/local/share/trivy/templates/html.tpl" -o report.html ${IMAGE_REPO}/${NAME}:${VERSION}-${GIT_COMMIT} '
-            }
-        }    
+        }   
         
-        stage('Upload Scan report to AWS S3') {
-              steps {
                   
-                //  sh 'aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"  && aws configure set aws_secret_access_key "$AWS_ACCESS_KEY_SECRET"  && aws configure set region ap-south-1  && aws configure set output "json"' 
-                  sh 'aws s3 cp report.html s3://devops-mastepiece/'
-              }
-        }
+     //  sh 'aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"  && aws configure set aws_secret_access_key "$AWS_ACCESS_KEY_SECRET"  && aws configure set region ap-south-1  && aws configure set output "json"' 
+            
         
         stage ('Docker Image Push') {
             steps {
@@ -121,7 +91,7 @@ pipeline {
 
                     } else {
                         echo 'Repo does not exists - Cloning the repo'
-                        sh 'git clone -b feature https://github.com/praveensirvi1212/DevOps_MasterPiece-CD-with-argocd.git'
+                        sh 'git clone -b feature https://github.com/indalarajesh/DevOps_MasterPiece-CD-with-argocd.git'
                     }
                 }
             }
@@ -130,7 +100,7 @@ pipeline {
         stage('Update deployment Manifest') {
             steps {
                 dir("DevOps_MasterPiece-CD-with-argocd/yamls") {
-                    sh 'sed -i "s#praveensirvi.*#${IMAGE_REPO}/${NAME}:${VERSION}-${GIT_COMMIT}#g" deployment.yaml'
+                    sh 'sed -i "s#indalarajesh.*#${IMAGE_REPO}/${NAME}:${VERSION}-${GIT_COMMIT}#g" deployment.yaml'
                     sh 'cat deployment.yaml'
                 }
             }
@@ -140,7 +110,7 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
                     dir("DevOps_MasterPiece-CD-with-argocd/yamls") {
-                        sh "git config --global user.email 'praveen@gmail.com'"
+                        sh "git config --global user.email 'indalarajesh1997@gmail.com'"
                         sh 'git remote set-url origin https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}'
                         sh 'git checkout feature'
                         sh 'git add deployment.yaml'
@@ -169,25 +139,6 @@ pipeline {
             }
         } 
     }
-
-    post{
-        always{
-            sendSlackNotifcation()
-            }
-        }
-}
-
-def sendSlackNotifcation()
-{
-    if ( currentBuild.currentResult == "SUCCESS" ) {
-        buildSummary = "Job_name: ${env.JOB_NAME}\n Build_id: ${env.BUILD_ID} \n Status: *SUCCESS*\n Build_url: ${BUILD_URL}\n Job_url: ${JOB_URL} \n"
-        slackSend( channel: "#devops", token: 'slack-token', color: 'good', message: "${buildSummary}")
-    }
-    else {
-        buildSummary = "Job_name: ${env.JOB_NAME}\n Build_id: ${env.BUILD_ID} \n Status: *FAILURE*\n Build_url: ${BUILD_URL}\n Job_url: ${JOB_URL}\n  \n "
-        slackSend( channel: "#devops", token: 'slack-token', color : "danger", message: "${buildSummary}")
-    }
-}
 
 
 
