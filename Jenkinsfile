@@ -27,32 +27,32 @@ pipeline {
             }
         }
         
-        stage('Deploy to Artifactory') {
-            environment {
-                // Define the target repository in Artifactory
-                TARGET_REPO = 'my-local-repo'
-            }
+        // stage('Deploy to Artifactory') {
+        //     environment {
+        //         // Define the target repository in Artifactory
+        //         TARGET_REPO = 'my-local-repo'
+        //     }
             
-            steps {
-                script {
-                    try {
-                        def server = Artifactory.newServer url: 'http://13.232.95.58:8082/artifactory', credentialsId: 'jfrog-cred'
-                        def uploadSpec = """{
-                            "files": [
-                                {
-                                    "pattern": "target/*.jar",
-                                    "target": "${TARGET_REPO}/"
-                                }
-                            ]
-                        }"""
+        //     steps {
+        //         script {
+        //             try {
+        //                 def server = Artifactory.newServer url: 'http://13.232.95.58:8082/artifactory', credentialsId: 'jfrog-cred'
+        //                 def uploadSpec = """{
+        //                     "files": [
+        //                         {
+        //                             "pattern": "target/*.jar",
+        //                             "target": "${TARGET_REPO}/"
+        //                         }
+        //                     ]
+        //                 }"""
                         
-                        server.upload(uploadSpec)
-                    } catch (Exception e) {
-                        error("Failed to deploy artifacts to Artifactory: ${e.message}")
-                    }
-                }
-            }
-        }
+        //                 server.upload(uploadSpec)
+        //             } catch (Exception e) {
+        //                 error("Failed to deploy artifacts to Artifactory: ${e.message}")
+        //             }
+        //         }
+        //     }
+        // }
         
         stage('Docker  Build') {
             steps {
